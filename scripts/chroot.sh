@@ -1038,12 +1038,14 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		fi
 
 		#We use connman...
-		if [ -f /lib/systemd/system/systemd-networkd.service ] ; then
+		if [ -f /lib/systemd/system/connman.service ] &&
+		   [ -f /lib/systemd/system/systemd-networkd.service ] ; then
 			systemctl disable systemd-networkd.service || true
 		fi
 
 		#We use dnsmasq & connman...
-		if [ -f /lib/systemd/system/systemd-resolved.service ] ; then
+		if [ -f /lib/systemd/system/dnsmasq.service ] &&
+		   [ -f /lib/systemd/system/systemd-resolved.service ] ; then
 			systemctl disable systemd-resolved.service || true
 		fi
 
