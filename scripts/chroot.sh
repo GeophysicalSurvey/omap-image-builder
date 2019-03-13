@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 #
-# Copyright (c) 2012-2018 Robert Nelson <robertcnelson@gmail.com>
+# Copyright (c) 2012-2019 Robert Nelson <robertcnelson@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,9 @@ time=$(date +%Y-%m-%d)
 OIB_DIR="$(dirname "$( cd "$(dirname "$0")" ; pwd -P )" )"
 chroot_completed="false"
 
-abi=ab
+abi=ac
 
+#ac=change /sys/kernel/debug mount persmissions
 #ab=efi added 20180321
 #aa
 
@@ -411,6 +412,13 @@ if [ ! "x${repo_nodesource}" = "x" ] ; then
 	sudo cp -v "${OIB_DIR}/target/keyring/nodesource.gpg.key" "${tempdir}/tmp/nodesource.gpg.key"
 fi
 
+if [ "x${repo_azulsystems}" = "xenable" ] ; then
+	echo "" >> ${wfile}
+	echo "deb http://repos.azulsystems.com/${deb_distribution} stable main" >> ${wfile}
+	echo "" >> ${wfile}
+	sudo cp -v "${OIB_DIR}/target/keyring/repos.azulsystems.com.pubkey.asc" "${tempdir}/tmp/repos.azulsystems.com.pubkey.asc"
+fi
+
 if [ "x${repo_rcnee}" = "xenable" ] ; then
 	#no: precise
 	echo "" >> ${wfile}
@@ -568,6 +576,10 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		if [ -f /tmp/nodesource.gpg.key ] ; then
 			apt-key add /tmp/nodesource.gpg.key
 			rm -f /tmp/nodesource.gpg.key || true
+		fi
+		if [ -f /tmp/repos.azulsystems.com.pubkey.asc ] ; then
+			apt-key add /tmp/repos.azulsystems.com.pubkey.asc
+			rm -f /tmp/repos.azulsystems.com.pubkey.asc || true
 		fi
 		if [ "x${repo_rcnee}" = "xenable" ] ; then
 			apt-key add /tmp/repos.rcn-ee.net-archive-keyring.asc
@@ -1055,6 +1067,15 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		if [ -f /lib/systemd/system/man-db.service ] ; then
 			systemctl disable man-db.service || true
 			systemctl disable man-db.timer || true
+		fi
+
+		#Anyone who needs this can enable it...
+		if [ -f /lib/systemd/system/pppd-dns.service ] ; then
+			systemctl disable pppd-dns.service || true
+		fi
+
+		if [ -f /lib/systemd/system/hostapd.service ] ; then
+			systemctl disable hostapd.service || true
 		fi
 	}
 

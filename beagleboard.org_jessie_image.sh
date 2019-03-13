@@ -48,14 +48,16 @@ extract_base_rootfs () {
         if [ -f \${base_rootfs}.tar.xz ] ; then
                 tar xf \${base_rootfs}.tar.xz
         else
-                tar xf \${base_rootfs}.tar
+                if [ -f \${base_rootfs}.tar ] ; then
+                        tar xf \${base_rootfs}.tar
+                fi
         fi
 }
 
 archive_img () {
-	#prevent xz warning for 'Cannot set the file group: Operation not permitted'
-	sudo chown \${UID}:\${GROUPS} \${wfile}.img
         if [ -f \${wfile}.img ] ; then
+                #prevent xz warning for 'Cannot set the file group: Operation not permitted'
+                sudo chown 1000:1000 \${wfile}.img
                 if [ ! -f \${wfile}.bmap ] ; then
                         if [ -f /usr/bin/bmaptool ] ; then
                                 bmaptool create -o \${wfile}.bmap \${wfile}.img
@@ -66,11 +68,15 @@ archive_img () {
 }
 
 generate_img () {
-        cd \${base_rootfs}/
-        sudo ./setup_sdcard.sh \${options}
-        mv *.img ../
-        mv *.job.txt ../
-        cd ..
+        if [ ! "x\${base_rootfs}" = "x" ] ; then
+                if [ -d \${base_rootfs}/ ] ; then
+                        cd \${base_rootfs}/
+                        sudo ./setup_sdcard.sh \${options}
+                        mv *.img ../ || true
+                        mv *.job.txt ../ || true
+                        cd ..
+                fi
+        fi
 }
 
 ###lxqt-4gb image
@@ -78,8 +84,8 @@ base_rootfs="${debian_jessie_lxqt_4gb}" ; blend="lxqt-4gb" ; extract_base_rootfs
 
 options="--img-4gb BBB-eMMC-flasher-\${base_rootfs} ${beaglebone} --emmc-flasher" ; generate_img
 options="--img-4gb bone-\${base_rootfs} ${beaglebone}" ; generate_img
-options="--img-4gb bbx15-eMMC-flasher-\${base_rootfs} ${am57xx_beagle_x15} --emmc-flasher" ; generate_img
-options="--img-4gb bbx15-\${base_rootfs} ${am57xx_beagle_x15}" ; generate_img
+options="--img-4gb am57xx-eMMC-flasher-\${base_rootfs} ${am57xx_beagle_x15} --emmc-flasher" ; generate_img
+options="--img-4gb am57xx-\${base_rootfs} ${am57xx_beagle_x15}" ; generate_img
 
 ###lxqt-2gb image
 base_rootfs="${debian_jessie_lxqt_2gb}" ; blend="lxqt-2gb" ; extract_base_rootfs
@@ -91,8 +97,8 @@ base_rootfs="${debian_jessie_console}" ; blend="console" ; extract_base_rootfs
 
 options="--img-2gb BBB-eMMC-flasher-\${base_rootfs} ${beaglebone_console} --emmc-flasher" ; generate_img
 options="--img-2gb bone-\${base_rootfs} ${beaglebone_console}" ; generate_img
-options="--img-2gb bbx15-eMMC-flasher-\${base_rootfs} ${am57xx_beagle_x15} --emmc-flasher" ; generate_img
-options="--img-2gb bbx15-\${base_rootfs} ${am57xx_beagle_x15}" ; generate_img
+options="--img-2gb am57xx-eMMC-flasher-\${base_rootfs} ${am57xx_beagle_x15} --emmc-flasher" ; generate_img
+options="--img-2gb am57xx-\${base_rootfs} ${am57xx_beagle_x15}" ; generate_img
 
 ###archive *.tar
 base_rootfs="${debian_jessie_lxqt_4gb}" ; blend="lxqt-4gb" ; archive_base_rootfs
@@ -102,8 +108,8 @@ base_rootfs="${debian_jessie_console}" ; blend="console" ; archive_base_rootfs
 blend="lxqt-4gb"
 wfile="BBB-eMMC-flasher-${debian_jessie_lxqt_4gb}-4gb" ; archive_img
 wfile="bone-${debian_jessie_lxqt_4gb}-4gb" ; archive_img
-wfile="bbx15-eMMC-flasher-${debian_jessie_lxqt_4gb}-4gb" ; archive_img
-wfile="bbx15-${debian_jessie_lxqt_4gb}-4gb" ; archive_img
+wfile="am57xx-eMMC-flasher-${debian_jessie_lxqt_4gb}-4gb" ; archive_img
+wfile="am57xx-${debian_jessie_lxqt_4gb}-4gb" ; archive_img
 
 blend="lxqt-2gb"
 wfile="BBB-eMMC-flasher-${debian_jessie_lxqt_2gb}-2gb" ; archive_img
@@ -111,8 +117,8 @@ wfile="BBB-eMMC-flasher-${debian_jessie_lxqt_2gb}-2gb" ; archive_img
 blend="console"
 wfile="BBB-eMMC-flasher-${debian_jessie_console}-2gb" ; archive_img
 wfile="bone-${debian_jessie_console}-2gb" ; archive_img
-wfile="bbx15-eMMC-flasher-${debian_jessie_console}-2gb" ; archive_img
-wfile="bbx15-${debian_jessie_console}-2gb" ; archive_img
+wfile="am57xx-eMMC-flasher-${debian_jessie_console}-2gb" ; archive_img
+wfile="am57xx-${debian_jessie_console}-2gb" ; archive_img
 
 __EOF__
 
