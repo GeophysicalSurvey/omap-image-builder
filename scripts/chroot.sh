@@ -143,6 +143,13 @@ check_defines () {
 			include=$(echo ${repo_rcnee_pkg_list} | sed 's/,/ /g' | sed 's/\t/,/g')
 			deb_additional_pkgs="${deb_additional_pkgs} ${include}"
 		fi
+
+		if [ "x${repo_rcnee_sgx}" = "xenable" ] ; then
+			if [ ! "x${repo_rcnee_sgx_pkg_list}" = "x" ] ; then
+				include=$(echo ${repo_rcnee_sgx_pkg_list} | sed 's/,/ /g' | sed 's/\t/,/g')
+				deb_additional_pkgs="${deb_additional_pkgs} ${include}"
+			fi
+		fi
 	fi
 }
 
@@ -357,38 +364,47 @@ echo "deb http://${deb_mirror} ${deb_codename} ${deb_components}" > ${wfile}
 echo "#deb-src http://${deb_mirror} ${deb_codename} ${deb_components}" >> ${wfile}
 echo "" >> ${wfile}
 
+#https://wiki.debian.org/StableUpdates
 case "${deb_codename}" in
 buster|sid)
 	echo "#deb http://${deb_mirror} ${deb_codename}-updates ${deb_components}" >> ${wfile}
 	echo "##deb-src http://${deb_mirror} ${deb_codename}-updates ${deb_components}" >> ${wfile}
+	echo "" >> ${wfile}
+	;;
+jessie)
+	echo "###For Debian 8 Jessie, jessie-updates no longer exists as this suite no longer receives updates since 2018-05-17." >> ${wfile}
 	;;
 *)
 	echo "deb http://${deb_mirror} ${deb_codename}-updates ${deb_components}" >> ${wfile}
 	echo "#deb-src http://${deb_mirror} ${deb_codename}-updates ${deb_components}" >> ${wfile}
+	echo "" >> ${wfile}
 	;;
 esac
 
+#https://wiki.debian.org/LTS/Using
 case "${deb_codename}" in
 jessie|stretch)
-	echo "" >> ${wfile}
 	echo "deb http://deb.debian.org/debian-security ${deb_codename}/updates ${deb_components}" >> ${wfile}
 	echo "#deb-src http://deb.debian.org/debian-security ${deb_codename}/updates ${deb_components}" >> ${wfile}
 	echo "" >> ${wfile}
-	if [ "x${chroot_enable_debian_backports}" = "xenable" ] ; then
-		echo "deb http://deb.debian.org/debian ${deb_codename}-backports ${deb_components}" >> ${wfile}
-		echo "#deb-src http://deb.debian.org/debian ${deb_codename}-backports ${deb_components}" >> ${wfile}
-	else
-		echo "#deb http://deb.debian.org/debian ${deb_codename}-backports ${deb_components}" >> ${wfile}
-		echo "##deb-src http://deb.debian.org/debian ${deb_codename}-backports ${deb_components}" >> ${wfile}
-	fi
 	;;
 buster|sid)
-	echo "" >> ${wfile}
 	echo "#deb http://deb.debian.org/debian-security ${deb_codename}/updates ${deb_components}" >> ${wfile}
 	echo "##deb-src http://deb.debian.org/debian-security ${deb_codename}/updates ${deb_components}" >> ${wfile}
 	echo "" >> ${wfile}
 	;;
 esac
+
+#https://wiki.debian.org/Backports
+if [ "x${chroot_enable_debian_backports}" = "xenable" ] ; then
+	case "${deb_codename}" in
+	jessie|stretch)
+		echo "deb http://deb.debian.org/debian ${deb_codename}-backports ${deb_components}" >> ${wfile}
+		echo "#deb-src http://deb.debian.org/debian ${deb_codename}-backports ${deb_components}" >> ${wfile}
+		echo "" >> ${wfile}
+		;;
+	esac
+fi
 
 if [ "x${repo_external}" = "xenable" ] ; then
 	echo "" >> ${wfile}
@@ -737,7 +753,7 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 
 		if [ ! "x${rfs_ssh_banner}" = "x" ] || [ ! "x${rfs_ssh_user_pass}" = "x" ] ; then
 			if [ -f /etc/ssh/sshd_config ] ; then
-				sed -i -e 's:#Banner:Banner:g' /etc/ssh/sshd_config
+				sed -i -e 's:#Banner none:Banner /etc/issue.net:g' /etc/ssh/sshd_config
 			fi
 		fi
 	}
@@ -1156,6 +1172,10 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		grub_tweaks
 	fi
 
+	if [ -d /opt/sgx/ ] ; then
+		chown -R ${rfs_username}:${rfs_username} /opt/sgx/
+	fi
+
 	rm -f /chroot_script.sh || true
 __EOF__
 
@@ -1196,6 +1216,16 @@ if [ "x${include_firmware}" = "xenable" ] ; then
 	if [ -f "${DIR}/git/linux-firmware/mt7601u.bin" ] ; then
 		sudo cp "${DIR}/git/linux-firmware/mt7601u.bin" "${tempdir}/lib/firmware/mt7601u.bin"
 	fi
+fi
+
+if [ "x${repo_rcnee_sgx}" = "xenable" ] ; then
+	sgx_http="https://rcn-ee.net/repos/debian/pool/main"
+	sudo mkdir -p "${tempdir}/opt/sgx/"
+	sudo wget --directory-prefix="${tempdir}/opt/sgx/" ${sgx_http}/t/ti-sgx-ti33x-ddk-um/ti-sgx-ti33x-ddk-um_1.14.3699939-git20171201.0-0rcnee9~stretch+20190328_armhf.deb
+	sudo wget --directory-prefix="${tempdir}/opt/sgx/" ${sgx_http}/t/ti-sgx-ti335x-modules-${repo_rcnee_pkg_version}/ti-sgx-ti335x-modules-${repo_rcnee_pkg_version}_1${deb_codename}_armhf.deb
+	sudo wget --directory-prefix="${tempdir}/opt/sgx/" ${sgx_http}/t/ti-sgx-jacinto6evm-modules-${repo_rcnee_pkg_version}/ti-sgx-jacinto6evm-modules-${repo_rcnee_pkg_version}_1${deb_codename}_armhf.deb
+	wfile="${tempdir}/opt/sgx/status"
+	sudo sh -c "echo 'not_installed' >> ${wfile}"
 fi
 
 if [ -n "${early_chroot_script}" -a -r "${DIR}/target/chroot/${early_chroot_script}" ] ; then
