@@ -1506,6 +1506,7 @@ echo "Log: USER:${USER}"
 if [ "x${chroot_tarball}" = "xenable" ] ; then
 	echo "Creating: ${export_filename}.tar"
 	cd "${DIR}/deploy/" || true
+	sudo chmod 755 ./${export_filename}
 	sudo tar cvf ${export_filename}.tar ./${export_filename}
 	sudo chown -R ${USER}:${USER} "${export_filename}.tar"
 	cd "${DIR}/" || true
