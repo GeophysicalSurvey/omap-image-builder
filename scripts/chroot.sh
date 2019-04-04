@@ -1495,6 +1495,7 @@ if [ "x${chroot_directory}" = "xenable" ]; then
 else
 	cd "${tempdir}" || true
 	echo "Log: packaging rootfs: [${deb_arch}-rootfs-${deb_distribution}-${deb_codename}.tar]"
+	sudo chmod 755 .
 	sudo LANG=C tar --numeric-owner -cf "${DIR}/deploy/${export_filename}/${deb_arch}-rootfs-${deb_distribution}-${deb_codename}.tar" .
 	cd "${DIR}/" || true
 	ls -lh "${DIR}/deploy/${export_filename}/${deb_arch}-rootfs-${deb_distribution}-${deb_codename}.tar"
@@ -1506,7 +1507,6 @@ echo "Log: USER:${USER}"
 if [ "x${chroot_tarball}" = "xenable" ] ; then
 	echo "Creating: ${export_filename}.tar"
 	cd "${DIR}/deploy/" || true
-	sudo chmod 755 ./${export_filename}
 	sudo tar cvf ${export_filename}.tar ./${export_filename}
 	sudo chown -R ${USER}:${USER} "${export_filename}.tar"
 	cd "${DIR}/" || true
