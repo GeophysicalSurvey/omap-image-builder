@@ -22,7 +22,7 @@
 
 export LC_ALL=C
 
-u_boot_release="v2018.09"
+u_boot_release="v2019.04"
 u_boot_release_x15="ti-2017.01"
 
 #contains: rfs_username, release_date
@@ -199,24 +199,9 @@ install_git_repos () {
 		fi
 	fi
 
-	git_repo="https://github.com/prpplague/Userspace-Arduino"
-	git_target_dir="/opt/source/Userspace-Arduino"
-	git_clone
-
 	git_repo="https://github.com/strahlex/BBIOConfig.git"
 	git_target_dir="/opt/source/BBIOConfig"
 	git_clone
-
-	git_repo="https://github.com/prpplague/fb-test-app.git"
-	git_target_dir="/opt/source/fb-test-app"
-	git_clone
-	if [ -f ${git_target_dir}/.git/config ] ; then
-		cd ${git_target_dir}/
-		if [ -f /usr/bin/make ] ; then
-			make
-		fi
-		cd /
-	fi
 
 	#am335x-pru-package
 	if [ -f /usr/include/prussdrv.h ] ; then
@@ -232,19 +217,14 @@ install_git_repos () {
 		fi
 	fi
 
-	git_repo="https://github.com/rogerq/pru-software-support-package"
-	git_target_dir="/opt/source/rogerq-mainline-pru-software-support-package"
-	git_branch="upstream/pruss"
-	git_clone_branch
-
-	git_repo="https://github.com/RobertCNelson/dtb-rebuilder.git"
+	git_repo="https://github.com/beagleboard/BeagleBoard-DeviceTrees"
 	git_target_dir="/opt/source/dtb-4.14-ti"
-	git_branch="4.14-ti"
+	git_branch="v4.14.x-ti"
 	git_clone_branch
 
-	git_repo="https://github.com/RobertCNelson/dtb-rebuilder.git"
+	git_repo="https://github.com/beagleboard/BeagleBoard-DeviceTrees"
 	git_target_dir="/opt/source/dtb-4.19-ti"
-	git_branch="4.19-ti"
+	git_branch="v4.19.x-ti"
 	git_clone_branch
 
 	git_repo="https://github.com/beagleboard/bb.org-overlays"
