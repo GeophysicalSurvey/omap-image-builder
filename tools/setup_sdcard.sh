@@ -1341,10 +1341,6 @@ populate_rootfs () {
 		cmdline="${cmdline} ${rng_core}"
 	fi
 
-	if [ "x${enable_cape_universal}" = "xenable" ] ; then
-		cmdline="${cmdline} cape_universal=enable"
-	fi
-
 	cmdline="${cmdline} quiet"
 
 	unset kms_video
@@ -1438,13 +1434,6 @@ populate_rootfs () {
 		fi
 	fi
 
-	#oob out of box experience:
-	if [ ! "x${oobe_cape}" = "x" ] ; then
-		echo "" >> ${wfile}
-		echo "dtb=am335x-boneblack-overlay.dtb" >> ${wfile}
-		echo "cape_enable=bone_capemgr.enable_partno=${oobe_cape}" >> ${wfile}
-	fi
-
 	#am335x_boneblack is a custom u-boot to ignore empty factory eeproms...
 	if [ "x${conf_board}" = "xam335x_boneblack" ] ; then
 		board="am335x_evm"
@@ -1454,6 +1443,7 @@ populate_rootfs () {
 
 	echo "/boot/uEnv.txt---------------"
 	cat ${wfile}
+	sudo chown -R 1000:1000 ${wfile}
 	echo "-----------------------------"
 
 	wfile="${TEMPDIR}/disk/boot/SOC.sh"
@@ -1597,7 +1587,11 @@ populate_rootfs () {
 	fi
 
 	if [ -f ${TEMPDIR}/disk/etc/init.d/cpufrequtils ] ; then
-		sed -i 's/GOVERNOR="ondemand"/GOVERNOR="performance"/g' ${TEMPDIR}/disk/etc/init.d/cpufrequtils
+		if [ "x${conf_board}" = "xbeagle_x15" ] ; then
+			sed -i 's/GOVERNOR="ondemand"/GOVERNOR="powersave"/g' ${TEMPDIR}/disk/etc/init.d/cpufrequtils
+		else
+			sed -i 's/GOVERNOR="ondemand"/GOVERNOR="performance"/g' ${TEMPDIR}/disk/etc/init.d/cpufrequtils
+		fi
 	fi
 
 	if [ ! -f ${TEMPDIR}/disk/opt/scripts/boot/generic-startup.sh ] ; then
@@ -1912,7 +1906,10 @@ while [ ! -z "$1" ] ; do
 		### seek=$((1024 * (gsize * 850)))
 		## x 850 (85%) #1GB = 850 #2GB = 1700 #4GB = 3400
 		#
-		dd if=/dev/zero of="${media}" bs=1024 count=0 seek=$((1024 * (gsize * 850)))
+		### seek=$((1024 * (gsize * 900)))
+		## x 900 (90%) #1GB = 900 #2GB = 1800 #4GB = 3600
+		#
+		dd if=/dev/zero of="${media}" bs=1024 count=0 seek=$((1024 * (gsize * 900)))
 		;;
 	--dtb)
 		checkparm $2
@@ -2072,8 +2069,10 @@ while [ ! -z "$1" ] ; do
 		kernel_override="$2"
 		;;
 	--enable-cape)
-		checkparm $2
-		oobe_cape="$2"
+		#checkparm $2
+		#oobe_cape="$2"
+		echo "[--enable-cape XYZ] is obsolete, and has been removed..."
+		exit 2
 		;;
 	--enable-fat-partition)
 		enable_fat_partition="enable"

@@ -334,12 +334,12 @@ if [ "x${deb_distribution}" = "xdebian" ] ; then
 		echo 'Acquire::GzipIndexes "true"; Acquire::CompressionTypes::Order:: "gz";' > /tmp/02compress-indexes
 		sudo mv /tmp/02compress-indexes "${tempdir}/etc/apt/apt.conf.d/02compress-indexes"
 		;;
-	stretch)
+	stretch|buster)
 		echo 'Acquire::GzipIndexes "true"; APT::Compressor::xz::Cost "40";' > /tmp/02compress-indexes
 		sudo mv /tmp/02compress-indexes "${tempdir}/etc/apt/apt.conf.d/02compress-indexes"
 		;;
-	buster|sid)
-		###FIXME: close to release switch to ^ xz, right now buster is slow on apt...
+	sid)
+		###FIXME: close to release switch to ^ xz, right now <next> is slow on apt...
 		echo 'Acquire::GzipIndexes "true"; APT::Compressor::gzip::Cost "40";' > /tmp/02compress-indexes
 		sudo mv /tmp/02compress-indexes "${tempdir}/etc/apt/apt.conf.d/02compress-indexes"
 		;;
@@ -366,7 +366,7 @@ echo "" >> ${wfile}
 
 #https://wiki.debian.org/StableUpdates
 case "${deb_codename}" in
-buster|sid)
+sid)
 	echo "#deb http://${deb_mirror} ${deb_codename}-updates ${deb_components}" >> ${wfile}
 	echo "##deb-src http://${deb_mirror} ${deb_codename}-updates ${deb_components}" >> ${wfile}
 	echo "" >> ${wfile}
@@ -383,12 +383,12 @@ esac
 
 #https://wiki.debian.org/LTS/Using
 case "${deb_codename}" in
-jessie|stretch)
+jessie|stretch|buster)
 	echo "deb http://deb.debian.org/debian-security ${deb_codename}/updates ${deb_components}" >> ${wfile}
 	echo "#deb-src http://deb.debian.org/debian-security ${deb_codename}/updates ${deb_components}" >> ${wfile}
 	echo "" >> ${wfile}
 	;;
-buster|sid)
+sid)
 	echo "#deb http://deb.debian.org/debian-security ${deb_codename}/updates ${deb_components}" >> ${wfile}
 	echo "##deb-src http://deb.debian.org/debian-security ${deb_codename}/updates ${deb_components}" >> ${wfile}
 	echo "" >> ${wfile}
@@ -740,7 +740,13 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 			apt-get -y install libpruio-modules-${repo_rcnee_pkg_version} || true
 			apt-get -y install rtl8723bu-modules-${repo_rcnee_pkg_version} || true
 			apt-get -y install rtl8821cu-modules-${repo_rcnee_pkg_version} || true
-			apt-get -y install ti-cmem-modules-${repo_rcnee_pkg_version} || true
+
+			if [ ! "x${repo_rcnee_cmem_version}" = "x" ] ; then
+				apt-get -y install ti-cmem-${repo_rcnee_cmem_version}-modules-${repo_rcnee_pkg_version} || true
+			else
+				apt-get -y install ti-cmem-modules-${repo_rcnee_pkg_version} || true
+			fi
+
 			depmod -a ${repo_rcnee_pkg_version}
 			update-initramfs -u -k ${repo_rcnee_pkg_version}
 		fi
@@ -886,6 +892,7 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		cat /etc/group | grep ^gpio || groupadd -r gpio || true
 		cat /etc/group | grep ^pwm || groupadd -r pwm || true
 		cat /etc/group | grep ^eqep || groupadd -r eqep || true
+		cat /etc/group | grep ^remoteproc || groupadd -r remoteproc || true
 
 		echo "KERNEL==\"hidraw*\", GROUP=\"plugdev\", MODE=\"0660\"" > /etc/udev/rules.d/50-hidraw.rules
 		echo "KERNEL==\"spidev*\", GROUP=\"spi\", MODE=\"0660\"" > /etc/udev/rules.d/50-spi.rules
@@ -896,7 +903,7 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		echo "SUBSYSTEM==\"cmem\", GROUP=\"tisdk\", MODE=\"0660\"" > /etc/udev/rules.d/tisdk.rules
 		echo "SUBSYSTEM==\"rpmsg_rpc\", GROUP=\"tisdk\", MODE=\"0660\"" >> /etc/udev/rules.d/tisdk.rules
 
-		default_groups="admin,adm,cloud9ide,dialout,gpio,pwm,eqep,i2c,kmem,spi,cdrom,floppy,audio,dip,video,netdev,plugdev,bluetooth,users,systemd-journal,tisdk,weston-launch,xenomai"
+		default_groups="admin,adm,cloud9ide,dialout,gpio,pwm,eqep,i2c,remoteproc,kmem,spi,cdrom,floppy,audio,dip,video,netdev,plugdev,bluetooth,users,systemd-journal,tisdk,weston-launch,xenomai"
 
 		pkg="sudo"
 		dpkg_check
@@ -1470,7 +1477,11 @@ chroot_umount
 
 if [ "x${chroot_COPY_SETUP_SDCARD}" = "xenable" ] ; then
 	echo "Log: copying setup_sdcard.sh related files"
-	sudo cp "${DIR}/tools/setup_sdcard.sh" "${DIR}/deploy/${export_filename}/"
+        if [ "x${chroot_custom_setup_sdcard}" = "x" ] ; then
+                sudo cp "${DIR}/tools/setup_sdcard.sh" "${DIR}/deploy/${export_filename}/"
+        else
+                sudo cp "${DIR}/tools/${chroot_custom_setup_sdcard}" "${DIR}/deploy/${export_filename}"
+        fi
 	sudo mkdir -p "${DIR}/deploy/${export_filename}/hwpack/"
 	sudo cp "${DIR}"/tools/hwpack/*.conf "${DIR}/deploy/${export_filename}/hwpack/"
 
